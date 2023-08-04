@@ -1,11 +1,18 @@
-import sys
+from fastapi import FastAPI, File, UploadFile
 
 from saveeditor.saveeditor import set_pokemon_levels
 
-if __name__ == "__main__":
-    input_path = sys.argv[1]
-    new_sav = set_pokemon_levels(input_path, 100)
+app = FastAPI()
 
-    out_path = input_path.split(".")[0] + "_new.sav"
-    with open(out_path, "wb") as f:
-        f.write(new_sav)
+
+@app.post("/upload/")
+def create_upload_file(file: UploadFile = File(...)):
+    try:
+        contents = file.file.read()
+        new_sav_data = set_pokemon_levels(contents, 100)
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        file.file.close()
+
+    return {"status": "success"}

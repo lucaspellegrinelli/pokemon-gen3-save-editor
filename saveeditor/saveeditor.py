@@ -23,19 +23,16 @@ def calculate_section_checksum(section_data):
     return (upper_16_bits + lower_16_bits) & 0xFFFF
 
 
-def set_pokemon_levels(save_path, new_level=100):
-    save_file = open(save_path, "rb")
-    save_data = save_file.read()
-    save_file.close()
-
+def set_pokemon_levels(save_data, new_level=100):
     section_contents = save_data[section_start:section_end].hex().upper()
 
     section_data = get_offseted(section_contents, 0, 3968)
-    # section_id = get_offseted(section_contents, 0xFF4, 2)
+    section_id = get_offseted(section_contents, 0xFF4, 2)
     section_checksum = get_offseted(section_contents, 0xFF6, 2)
     section_signature = get_offseted(section_contents, 0xFF8, 4)
     # section_save_idx = get_offseted(section_contents, 0xFFC, 4)
 
+    assert section_id == ["01", "00"]
     assert section_signature == ["25", "20", "01", "08"]
     assert calculate_section_checksum(section_data) == h2i(" ".join(section_checksum))
 
