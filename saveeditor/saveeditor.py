@@ -1,16 +1,15 @@
-from .utils.pokemonutils import (
-    calculate_hp_stat,
-    calculate_other_stat,
-    game_nature_id_to_name,
-    get_pokemon_base_stats,
-    get_pokemon_max_xp,
-)
-from .utils.savedatautils import get_evs_chunk, get_growth_chunk, get_misc_chunk
 from .utils.binutils import get_offseted, h2i, i2h, set_offseted
+from .utils.pokemonutils import (calculate_hp_stat, calculate_other_stat,
+                                 game_nature_id_to_name,
+                                 get_pokemon_base_stats, get_pokemon_max_xp)
+from .utils.savedatautils import (get_evs_chunk, get_growth_chunk,
+                                  get_misc_chunk)
 
+A_section_start = 0x3000
+A_section_end = A_section_start + 0xFFC + 4
 
-section_start = 0x12000
-section_end = section_start + 0xFFC + 4
+B_section_start = 0x12000
+B_section_end = B_section_start + 0xFFC + 4
 
 
 def calculate_section_checksum(section_data):
@@ -24,13 +23,23 @@ def calculate_section_checksum(section_data):
 
 
 def set_pokemon_levels(save_data, new_level=100):
-    section_contents = save_data[section_start:section_end].hex().upper()
+    A_section_contents = save_data[A_section_start:A_section_end].hex().upper()
+    B_section_contents = save_data[B_section_start:B_section_end].hex().upper()
+
+    A_section_save_idx = get_offseted(A_section_contents, 0xFFC, 4)
+    B_section_save_idx = get_offseted(B_section_contents, 0xFFC, 4)
+
+    A_idx = h2i(" ".join(A_section_save_idx))
+    B_idx = h2i(" ".join(B_section_save_idx))
+
+    section_contents = A_section_contents
+    if A_idx < B_idx:
+        section_contents = B_section_contents
 
     section_data = get_offseted(section_contents, 0, 3968)
     section_id = get_offseted(section_contents, 0xFF4, 2)
     section_checksum = get_offseted(section_contents, 0xFF6, 2)
     section_signature = get_offseted(section_contents, 0xFF8, 4)
-    # section_save_idx = get_offseted(section_contents, 0xFFC, 4)
 
     assert section_id == ["01", "00"]
     assert section_signature == ["25", "20", "01", "08"]
