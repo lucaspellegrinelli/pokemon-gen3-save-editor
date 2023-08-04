@@ -78,7 +78,7 @@ def get_pokemon_base_stats(pokemon_id):
     base_spdef = pokemon_stats[pokemon_stats["stat_id"] == 5]["base_stat"].values[0]
     base_speed = pokemon_stats[pokemon_stats["stat_id"] == 6]["base_stat"].values[0]
 
-    return base_hp, base_atk, base_def, base_spatk, base_spdef, base_speed
+    return base_hp, base_atk, base_def, base_speed, base_spatk, base_spdef
 
 
 def get_pokemon_max_xp(pokemon_id, level=100):
