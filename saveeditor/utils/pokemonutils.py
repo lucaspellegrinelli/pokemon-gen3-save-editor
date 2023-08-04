@@ -57,6 +57,7 @@ def get_nature_increase_decrease(nature_name):
     decr_stat = df_stats[df_stats["id"] == decr_stat_id]["identifier"].values[0]
     return incr_stat, decr_stat
 
+
 def get_stat_multiplier(nature_name, stat_name):
     incr_stat, decr_stat = get_nature_increase_decrease(nature_name)
     if stat_name == incr_stat:
@@ -65,6 +66,7 @@ def get_stat_multiplier(nature_name, stat_name):
         return 0.9
 
     return 1.0
+
 
 def get_pokemon_base_stats(pokemon_id):
     pokemon_stats = df_pokemon_stats[df_pokemon_stats["pokemon_id"] == pokemon_id]
@@ -77,6 +79,7 @@ def get_pokemon_base_stats(pokemon_id):
     base_speed = pokemon_stats[pokemon_stats["stat_id"] == 6]["base_stat"].values[0]
 
     return base_hp, base_atk, base_def, base_spatk, base_spdef, base_speed
+
 
 def get_pokemon_max_xp(pokemon_id, level=100):
     pokemon_species = df_pokemon_species[df_pokemon_species["id"] == pokemon_id]

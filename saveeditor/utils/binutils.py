@@ -18,8 +18,9 @@ def get_offseted(data, offset, length):
     offset_data = data[offset : offset + length]
     return [offset_data[i : i + 2] for i in range(0, len(offset_data), 2)]
 
+
 def set_offseted(data, offset, new_data):
     offset *= 2
     new_data = "".join(new_data)
-    data = data[:offset] + new_data + data[offset + len(new_data):]
+    data = data[:offset] + new_data + data[offset + len(new_data) :]
     return data
