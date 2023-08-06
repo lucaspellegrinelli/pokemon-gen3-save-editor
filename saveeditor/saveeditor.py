@@ -33,7 +33,7 @@ def set_pokemon_levels(save_data, new_level=100):
     A_section_start = 0x3000
     A_section_end = A_section_start + 0xFFC + 4
 
-    B_section_start = 0x12000 if is_frlg else 0x10000
+    B_section_start = 0x10000
     B_section_end = B_section_start + 0xFFC + 4
 
     A_section_contents = save_data[A_section_start:A_section_end].hex().upper()
@@ -51,8 +51,11 @@ def set_pokemon_levels(save_data, new_level=100):
     section_start = A_section_start
     section_end = A_section_end
     if A_idx < B_idx:
+        print("Section start:", B_section_start)
         section_start = B_section_start
         section_end = B_section_end
+    else:
+        print("Section start:", A_section_start)
 
     section_contents = save_data[section_start:section_end].hex().upper()
 
