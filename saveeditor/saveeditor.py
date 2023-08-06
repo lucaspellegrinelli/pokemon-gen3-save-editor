@@ -15,8 +15,21 @@ def calculate_section_checksum(section_data):
     lower_16_bits = section_checksum & 0xFFFF
     return (upper_16_bits + lower_16_bits) & 0xFFFF
 
+def is_firered_or_leafgreen(save_data):
+    As = 0x2000
+    Bs = 0xF000
+    l = 3968 + 2 + 2 + 4 + 4
+    A_section_0 = save_data[As : As + l].hex().upper()
+    B_section_0 = save_data[Bs : Bs + l].hex().upper()
+    A_game_code = h2i(" ".join(get_offseted(A_section_0, 0xAC, 4)))
+    B_game_code = h2i(" ".join(get_offseted(B_section_0, 0xAC, 4)))
+    return A_game_code == 1 or B_game_code == 1
 
-def set_pokemon_levels(save_data, is_frlg, new_level=100):
+
+def set_pokemon_levels(save_data, new_level=100):
+    is_frlg = is_firered_or_leafgreen(save_data)
+    print("is_frlg", is_frlg)
+
     A_section_start = 0x3000
     A_section_end = A_section_start + 0xFFC + 4
 

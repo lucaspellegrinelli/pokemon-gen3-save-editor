@@ -20,10 +20,6 @@ def home():
             <h1>Save Editor</h1>
             <form action="/upload/" enctype="multipart/form-data" method="post">
                 <input name="file" type="file">
-                <select name="game">
-                    <option value="frlg">FireRed/LeafGreen</option>
-                    <option value="rse">Ruby/Sapphire/Emerald</option>
-                </select>
                 <input type="submit">
             </form>
         </body>
@@ -32,13 +28,12 @@ def home():
 
 
 @app.post("/upload/")
-def create_upload_file(file: UploadFile = File(...), game: str = Form(...)):
+def create_upload_file(file: UploadFile = File(...)):
     try:
         save_name = str(uuid.uuid4())
         filename = file.filename
         contents = file.file.read()
-        is_frlg = game == "frlg"
-        new_sav_data = set_pokemon_levels(contents, is_frlg, 100)
+        new_sav_data = set_pokemon_levels(contents, 100)
         os.makedirs("save_files", exist_ok=True)
         with open(f"save_files/{save_name}.sav", "wb") as f:
             f.write(new_sav_data)
