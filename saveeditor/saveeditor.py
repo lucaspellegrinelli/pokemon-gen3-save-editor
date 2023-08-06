@@ -22,7 +22,12 @@ def calculate_section_checksum(section_data):
     return (upper_16_bits + lower_16_bits) & 0xFFFF
 
 
-def set_pokemon_levels(save_data, is_frlg=False, new_level=100):
+def is_firered_or_leafgreen(section_data):
+    pokemon_count = h2i(" ".join(section_data[0x34 : 0x34 + 4]))
+    return pokemon_count > 0 and pokemon_count <= 6
+
+
+def set_pokemon_levels(save_data, new_level=100):
     A_section_contents = save_data[A_section_start:A_section_end].hex().upper()
     B_section_contents = save_data[B_section_start:B_section_end].hex().upper()
 
@@ -44,6 +49,9 @@ def set_pokemon_levels(save_data, is_frlg=False, new_level=100):
     section_id = get_offseted(section_contents, 0xFF4, 2)
     section_checksum = get_offseted(section_contents, 0xFF6, 2)
     section_signature = get_offseted(section_contents, 0xFF8, 4)
+
+    is_frlg = is_firered_or_leafgreen(section_data)
+    print(f"Is FireRed or LeafGreen: {is_frlg}")
 
     assert section_id == ["01", "00"]
     assert section_signature == ["25", "20", "01", "08"]
@@ -77,8 +85,6 @@ def set_pokemon_levels(save_data, is_frlg=False, new_level=100):
 
         substructure_order = h2i(personality) % 24
         decrypt_key = h2i(orig_trainer_id) ^ h2i(personality)
-
-        print("Substructure order:", substructure_order)
 
         decrypted_data = ""
         data_chunks = data.split(" ")
@@ -231,7 +237,9 @@ def set_pokemon_levels(save_data, is_frlg=False, new_level=100):
         ] = mod_pokemon_data
 
     mod_section_data = section_data.copy()
-    mod_section_data[TEAM_LIST_OFFSET : TEAM_LIST_OFFSET + 600] = mod_team_pokemon_list_data
+    mod_section_data[
+        TEAM_LIST_OFFSET : TEAM_LIST_OFFSET + 600
+    ] = mod_team_pokemon_list_data
     new_section_checksum = i2h(calculate_section_checksum(mod_section_data), 4).split(
         " "
     )

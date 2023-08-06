@@ -7,7 +7,7 @@ output_file = f"{input_file}.new"
 
 with open(input_file, "rb") as f:
     data = f.read()
-    new_data = set_pokemon_levels(data, False, 100)
+    new_data = set_pokemon_levels(data, 100)
 
 with open(output_file, "wb") as f:
     f.write(new_data)
