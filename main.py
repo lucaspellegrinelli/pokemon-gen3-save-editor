@@ -33,7 +33,7 @@ def create_upload_file(file: UploadFile = File(...)):
         filename = file.filename
         save_name = str(uuid.uuid4())
         contents = file.file.read()
-        new_sav_data = set_pokemon_levels(contents, 100)
+        new_sav_data = set_pokemon_levels(contents, False, 100)
         os.makedirs("save_files", exist_ok=True)
         with open(f"save_files/{save_name}.sav", "wb") as f:
             f.write(new_sav_data)

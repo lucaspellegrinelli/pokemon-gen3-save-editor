@@ -22,7 +22,7 @@ def calculate_section_checksum(section_data):
     return (upper_16_bits + lower_16_bits) & 0xFFFF
 
 
-def set_pokemon_levels(save_data, new_level=100):
+def set_pokemon_levels(save_data, is_frlg=False, new_level=100):
     A_section_contents = save_data[A_section_start:A_section_end].hex().upper()
     B_section_contents = save_data[B_section_start:B_section_end].hex().upper()
 
@@ -32,9 +32,13 @@ def set_pokemon_levels(save_data, new_level=100):
     A_idx = h2i(" ".join(A_section_save_idx))
     B_idx = h2i(" ".join(B_section_save_idx))
 
-    section_contents = A_section_contents
-    if A_idx < B_idx:
-        section_contents = B_section_contents
+    section_start = A_section_start
+    section_end = A_section_end
+    if A_idx < B_idx and B_idx < 9999:
+        section_start = B_section_start
+        section_end = B_section_end
+
+    section_contents = save_data[section_start:section_end].hex().upper()
 
     section_data = get_offseted(section_contents, 0, 3968)
     section_id = get_offseted(section_contents, 0xFF4, 2)
@@ -45,8 +49,11 @@ def set_pokemon_levels(save_data, new_level=100):
     assert section_signature == ["25", "20", "01", "08"]
     assert calculate_section_checksum(section_data) == h2i(" ".join(section_checksum))
 
-    pokemon_count = h2i(" ".join(section_data[0x34 : 0x34 + 4]))
-    team_pokemon_list_data = section_data[0x38 : 0x38 + 600]
+    TEAM_SIZE_OFFSET = 0x34 if is_frlg else 0x234
+    TEAM_LIST_OFFSET = 0x38 if is_frlg else 0x238
+
+    pokemon_count = h2i(" ".join(section_data[TEAM_SIZE_OFFSET : TEAM_SIZE_OFFSET + 4]))
+    team_pokemon_list_data = section_data[TEAM_LIST_OFFSET : TEAM_LIST_OFFSET + 600]
     mod_team_pokemon_list_data = team_pokemon_list_data.copy()
 
     for pokemon_index in range(pokemon_count):
@@ -58,18 +65,20 @@ def set_pokemon_levels(save_data, new_level=100):
         orig_trainer_id = " ".join(pokemon_data[4:8])
         read_checksum = " ".join(pokemon_data[28:30])
         data = " ".join(pokemon_data[32:80])
-        # level = " ".join(pokemon_data[84:85])
+        level = " ".join(pokemon_data[84:85])
         pokerus = " ".join(pokemon_data[85:86])
-        # curr_hp = " ".join(pokemon_data[86:88])
-        # total_hp = " ".join(pokemon_data[88:90])
-        # attack = " ".join(pokemon_data[90:92])
-        # defense = " ".join(pokemon_data[92:94])
-        # speed = " ".join(pokemon_data[94:96])
-        # sp_attack = " ".join(pokemon_data[96:98])
-        # sp_defense = " ".join(pokemon_data[98:100])
+        curr_hp = " ".join(pokemon_data[86:88])
+        total_hp = " ".join(pokemon_data[88:90])
+        attack = " ".join(pokemon_data[90:92])
+        defense = " ".join(pokemon_data[92:94])
+        speed = " ".join(pokemon_data[94:96])
+        sp_attack = " ".join(pokemon_data[96:98])
+        sp_defense = " ".join(pokemon_data[98:100])
 
         substructure_order = h2i(personality) % 24
         decrypt_key = h2i(orig_trainer_id) ^ h2i(personality)
+
+        print("Substructure order:", substructure_order)
 
         decrypted_data = ""
         data_chunks = data.split(" ")
@@ -99,9 +108,12 @@ def set_pokemon_levels(save_data, new_level=100):
         mci = get_misc_chunk(substructure_order)
         misc_chunk = decrypted_data.split(" ")[mci * 12 : (mci + 1) * 12]
 
-        species = " ".join(growth_chunk[0:2])
+        species = h2i(" ".join(growth_chunk[0:2]))
+        if species > 251:
+            species -= 25
+
         # item = " ".join(growth_chunk[2:4])
-        xp = " ".join(growth_chunk[4:8])
+        xp = h2i(" ".join(growth_chunk[4:8]))
 
         hp_ev = h2i(" ".join(evs_chunk[0:1]))
         atk_ev = h2i(" ".join(evs_chunk[1:2]))
@@ -121,6 +133,19 @@ def set_pokemon_levels(save_data, new_level=100):
         spa_iv = int(ivs_bits[-25:-20], 2)
         spd_iv = int(ivs_bits[-30:-25], 2)
 
+        print()
+        print(" --- Pokemon Stats --- ")
+        print("Species\t\t", species)
+        print("Experience\t", xp)
+        print("Level\t\t", h2i(level))
+        print("HPt\t\t", f"{h2i(curr_hp)}/{h2i(total_hp)} \t\t({hp_ev} EV, {hp_iv} IV)")
+        print("Attack\t\t", f"{h2i(attack)} \t\t({atk_ev} EV, {atk_iv} IV)")
+        print("Defense\t\t", f"{h2i(defense)} \t\t({def_ev} EV, {def_iv} IV)")
+        print("Speed\t\t", f"{h2i(speed)} \t\t({spe_ev} EV, {spe_iv} IV)")
+        print("Sp. Attack\t", f"{h2i(sp_attack)} \t\t({spa_ev} EV, {spa_iv} IV)")
+        print("Sp. Defense\t", f"{h2i(sp_defense)} \t\t({spd_ev} EV, {spd_iv} IV)")
+        print()
+
         nature = h2i(personality) % 25
         nature_name = game_nature_id_to_name(nature)
 
@@ -131,9 +156,9 @@ def set_pokemon_levels(save_data, new_level=100):
             base_spe,
             base_spa,
             base_spd,
-        ) = get_pokemon_base_stats(h2i(species))
+        ) = get_pokemon_base_stats(species)
 
-        new_xp = get_pokemon_max_xp(h2i(species))
+        new_xp = get_pokemon_max_xp(species)
 
         new_hp = calculate_hp_stat(base_hp, hp_iv, hp_ev, new_level)
         new_atk = calculate_other_stat(
@@ -151,6 +176,18 @@ def set_pokemon_levels(save_data, new_level=100):
         new_spd = calculate_other_stat(
             "special-defense", base_spd, spd_iv, spd_ev, new_level, nature_name
         )
+
+        print(" --- New Pokemon Stats --- ")
+        print("Species\t\t", species)
+        print("Experience\t", new_xp)
+        print("Level\t\t", 100)
+        print("HP\t\t", f"{new_hp}/{new_hp} \t\t({hp_ev} EV, {hp_iv} IV)")
+        print("Attack\t\t", f"{new_atk} \t\t({atk_ev} EV, {atk_iv} IV)")
+        print("Defense\t\t", f"{new_def} \t\t({def_ev} EV, {def_iv} IV)")
+        print("Speed\t\t", f"{new_spe} \t\t({spe_ev} EV, {spe_iv} IV)")
+        print("Sp. Attack\t", f"{new_spa} \t\t({spa_ev} EV, {spa_iv} IV)")
+        print("Sp. Defense\t", f"{new_spd} \t\t({spd_ev} EV, {spd_iv} IV)")
+        print()
 
         xpi = gci * 6 + 2
         nxp_b = i2h(new_xp).split(" ")
@@ -179,9 +216,6 @@ def set_pokemon_levels(save_data, new_level=100):
 
         mod_pokemon_data = pokemon_data.copy()
 
-        print()
-        print("Species\t\t", h2i(species))
-
         mod_pokemon_data[28 : 28 + 2] = i2h(new_checksum, 4).split(" ")
         print("New Checksum Hex:", i2h(new_checksum, 4))
 
@@ -197,7 +231,7 @@ def set_pokemon_levels(save_data, new_level=100):
         ] = mod_pokemon_data
 
     mod_section_data = section_data.copy()
-    mod_section_data[0x38 : 0x38 + 600] = mod_team_pokemon_list_data
+    mod_section_data[TEAM_LIST_OFFSET : TEAM_LIST_OFFSET + 600] = mod_team_pokemon_list_data
     new_section_checksum = i2h(calculate_section_checksum(mod_section_data), 4).split(
         " "
     )
